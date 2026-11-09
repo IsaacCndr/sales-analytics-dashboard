@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalesPulse - Real-time Sales Analytics Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- App Container -->
+  <div class="dashboard-layout">
+    <!-- Top Bar Navigation -->
+    <header class="top-nav">
+      <div class="nav-brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">SalesPulse</h1>
+          <p class="brand-subtitle">Commercial Performance & Revenue Analytics</p>
+        </div>
+      </div>
+
+      <!-- Quick Date Filter Toolbar -->
+      <div class="toolbar-actions">
+        <div class="date-filter-group" id="dateFilterGroup">
+          <button type="button" class="date-btn" data-range="7d">Last 7 Days</button>
+          <button type="button" class="date-btn active" data-range="30d">Last 30 Days</button>
+          <button type="button" class="date-btn" data-range="90d">Quarter (90d)</button>
+          <button type="button" class="date-btn" data-range="year">YTD</button>
+          <button type="button" class="date-btn" data-range="all">All Time</button>
+          <button type="button" class="date-btn" data-range="custom" id="customDateBtn">Custom Range</button>
+        </div>
+
+        <!-- Custom Date Range Bar (Collapsible) -->
+        <div class="custom-date-bar" id="customDateBar" style="display: none;">
+          <input type="date" id="customStartDate" class="date-picker-input">
+          <span class="date-sep">to</span>
+          <input type="date" id="customEndDate" class="date-picker-input">
+          <button type="button" class="btn btn-secondary btn-sm" id="applyCustomDateBtn">Apply</button>
+        </div>
+
+        <div class="action-buttons">
+          <button type="button" class="btn btn-secondary" id="exportCsvBtn" title="Export sales to CSV">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export CSV
+          </button>
+          <button type="button" class="btn btn-secondary" id="importDataBtn" title="Import JSON or CSV data backup">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Import
+          </button>
+          <input type="file" id="importFileInput" accept=".json,.csv" style="display: none;">
+          <button type="button" class="btn btn-secondary" id="printReportBtn" title="Print or save executive summary as PDF">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            Print
+          </button>
+          <button type="button" class="btn btn-secondary" id="resetDataBtn" title="Restore sample demo data">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+            Reset
+          </button>
+          <button type="button" class="btn btn-primary" id="openAddModalBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Record Sale
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="dashboard-body">
+      <!-- Target & Period Header Info -->
+      <section class="overview-banner">
+        <div class="banner-content">
+          <div class="banner-text">
+            <h2 id="periodLabel">Performance Overview (Last 30 Days)</h2>
+            <p>Track gross receipts, recurring subscriptions, sales conversions, and customer transactions updated in real time.</p>
+          </div>
+          <div class="target-card">
+            <div class="target-header">
+              <span class="target-title">Quarterly Target Progress</span>
+              <span class="target-numbers" id="targetProgressText">$0 / $120,000</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" id="targetProgressBar" style="width: 0%;"></div>
+            </div>
+            <div class="target-footer">
+              <span id="targetPercentBadge">0% achieved</span>
+              <span id="targetRemainingText">$120,000 remaining</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Key Performance Indicators (KPI Cards) -->
+      <section class="kpi-grid">
+        <!-- KPI 1: Gross Revenue -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Gross Revenue</span>
+            <div class="kpi-icon-wrap kpi-blue">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpiGrossRevenue">$0.00</div>
+          <div class="kpi-footer">
+            <span class="kpi-trend trend-positive" id="revenueTrend">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
+              <span>+18.4%</span>
+            </span>
+            <span class="kpi-subtext">vs preceding window</span>
+          </div>
+        </div>
+
+        <!-- KPI 2: Total Orders -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Total Transactions</span>
+            <div class="kpi-icon-wrap kpi-purple">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpiTotalOrders">0</div>
+          <div class="kpi-footer">
+            <span class="kpi-trend trend-positive" id="ordersTrend">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
+              <span>+12.1%</span>
+            </span>
+            <span class="kpi-subtext">volume growth</span>
+          </div>
+        </div>
+
+        <!-- KPI 3: Average Order Value (AOV) -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Average Deal Size (AOV)</span>
+            <div class="kpi-icon-wrap kpi-green">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                <polyline points="16 7 22 7 22 13"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpiAOV">$0.00</div>
+          <div class="kpi-footer">
+            <span class="kpi-trend trend-positive" id="aovTrend">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
+              <span>+5.6%</span>
+            </span>
+            <span class="kpi-subtext">per transaction</span>
+          </div>
+        </div>
+
+        <!-- KPI 4: Successful Completion Rate -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Settlement Rate</span>
+            <div class="kpi-icon-wrap kpi-amber">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpiCompletionRate">0%</div>
+          <div class="kpi-footer">
+            <span class="kpi-subtext" id="kpiPendingRefundText">0 pending | 0 refunded</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section class="charts-grid">
+        <!-- Main Timeline Chart -->
+        <div class="card chart-card-main">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Revenue & Sales Trajectory</h3>
+              <p class="card-description">Temporal analysis of receipts and volume over the selected window</p>
+            </div>
+            <div class="chart-controls">
+              <div class="segmented-control" id="metricToggleGroup">
+                <button type="button" class="seg-btn active" data-metric="revenue">Revenue ($)</button>
+                <button type="button" class="seg-btn" data-metric="count">Volume (#)</button>
+              </div>
+              <div class="segmented-control" id="chartTypeToggleGroup">
+                <button type="button" class="seg-btn active" data-type="line">Line</button>
+                <button type="button" class="seg-btn" data-type="bar">Bar</button>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container" style="position: relative; height: 320px; width: 100%;">
+            <canvas id="timelineChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Category Breakdown Chart -->
+        <div class="card chart-card-side">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Sales by Category</h3>
+              <p class="card-description">Revenue distribution across solutions</p>
+            </div>
+          </div>
+          <div class="chart-container donut-container" style="position: relative; height: 250px; width: 100%;">
+            <canvas id="categoryChart"></canvas>
+          </div>
+          <div class="category-breakdown-list" id="categoryLegendList">
+            <!-- Populated via JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Secondary Analytics Grid: Channel Performance & Top Products -->
+      <section class="insights-grid">
+        <!-- Sales Channel Breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Sales by Channel</h3>
+              <p class="card-description">Where client acquisitions originate</p>
+            </div>
+          </div>
+          <div class="channel-bars-list" id="channelPerformanceList">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Top Selling Products / Services -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Top Performing Solutions</h3>
+              <p class="card-description">Highest grossing products this window</p>
+            </div>
+          </div>
+          <div class="table-responsive compact-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Product / Plan</th>
+                  <th>Category</th>
+                  <th class="text-right">Orders</th>
+                  <th class="text-right">Gross Total</th>
+                </tr>
+              </thead>
+              <tbody id="topProductsTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Data Table Section: Transactions Ledger -->
+      <section class="card table-card">
+        <div class="card-header table-header-flex">
+          <div>
+            <h3 class="card-title">Sales Ledger & Transactions</h3>
+            <p class="card-description">Individual record entries stored persistently in browser WebStorage</p>
+          </div>
+          <div class="table-filter-bar">
+            <!-- Search Input -->
+            <div class="search-input-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="transactionSearchInput" placeholder="Search customer, product...">
+            </div>
+
+            <!-- Status Filter -->
+            <select id="statusFilterSelect" class="form-select filter-select">
+              <option value="all">All Statuses</option>
+              <option value="Completed">Completed</option>
+              <option value="Pending">Pending</option>
+              <option value="Refunded">Refunded</option>
+            </select>
+
+            <!-- Category Filter -->
+            <select id="categoryFilterSelect" class="form-select filter-select">
+              <option value="all">All Categories</option>
+              <option value="Enterprise SaaS">Enterprise SaaS</option>
+              <option value="Cloud Infrastructure">Cloud Infrastructure</option>
+              <option value="API & Developer">API & Developer</option>
+              <option value="Professional Services">Professional Services</option>
+              <option value="Security Add-ons">Security Add-ons</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-responsive">
+          <table class="data-table main-table">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="id">ID</th>
+                <th class="sortable" data-sort="date">Date</th>
+                <th class="sortable" data-sort="customer">Customer</th>
+                <th class="sortable" data-sort="product">Product / Service</th>
+                <th class="sortable" data-sort="category">Category</th>
+                <th class="sortable" data-sort="channel">Channel</th>
+                <th class="sortable text-right" data-sort="amount">Amount</th>
+                <th class="sortable" data-sort="status">Status</th>
+                <th class="text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTableBody">
+              <!-- Dynamically populated from JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Table Footer / Count summary -->
+        <div class="table-footer">
+          <div class="table-summary-text" id="tableSummaryText">Showing 0 of 0 transactions</div>
+          <div class="table-pagination-info">Data stored locally via <code>localStorage</code></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+      <p>SalesPulse &bull; Pure Client-Side Analytics Engine &bull; Zero external backend required</p>
+    </footer>
+  </div>
+
+  <!-- Modal: Add New Sale -->
+  <div class="modal-overlay" id="addSaleModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="modalTitleText">Record New Sale</h3>
+          <p class="modal-subtitle" id="modalSubtitleText">Enter customer transaction details to update ledger and dashboard metrics</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="closeAddModalBtn">&times;</button>
+      </div>
+
+      <form id="addSaleForm" class="modal-body">
+        <input type="hidden" id="formEditId" value="">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="formCustomerName" class="form-label">Customer / Company Name *</label>
+            <input type="text" id="formCustomerName" class="form-input" placeholder="e.g. Acme Corp" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="formCustomerEmail" class="form-label">Contact Email</label>
+            <input type="email" id="formCustomerEmail" class="form-input" placeholder="e.g. billing@acme.com">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="formProduct" class="form-label">Product / Service Plan *</label>
+            <input type="text" id="formProduct" class="form-input" placeholder="e.g. Enterprise Platform Tier 3" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="formCategory" class="form-label">Category *</label>
+            <select id="formCategory" class="form-select" required>
+              <option value="Enterprise SaaS">Enterprise SaaS</option>
+              <option value="Cloud Infrastructure">Cloud Infrastructure</option>
+              <option value="API & Developer">API & Developer</option>
+              <option value="Professional Services">Professional Services</option>
+              <option value="Security Add-ons">Security Add-ons</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="formAmount" class="form-label">Sale Amount ($ USD) *</label>
+            <input type="number" id="formAmount" class="form-input" step="0.01" min="1" max="1000000" placeholder="1250.00" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="formDate" class="form-label">Date *</label>
+            <input type="date" id="formDate" class="form-input" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="formChannel" class="form-label">Sales Channel</label>
+            <select id="formChannel" class="form-select">
+              <option value="Direct Inbound">Direct Inbound</option>
+              <option value="Outbound Sales">Outbound Sales</option>
+              <option value="Self-Serve Web">Self-Serve Web</option>
+              <option value="Partner Network">Partner Network</option>
+              <option value="Key Account Renewal">Key Account Renewal</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label for="formStatus" class="form-label">Transaction Status *</label>
+            <select id="formStatus" class="form-select" required>
+              <option value="Completed">Completed</option>
+              <option value="Pending">Pending</option>
+              <option value="Refunded">Refunded</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
